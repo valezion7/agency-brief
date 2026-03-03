@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brief — Agency OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;color:#f0f0f0;font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;padding:0}
+
+/* Layout */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:240px;background:#0a0a0a;border-right:1px solid #1e1e1e;padding:40px 28px;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh}
+.main{margin-left:240px;flex:1;padding:56px 64px;max-width:760px}
+
+@media(max-width:720px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:32px 24px}
+}
+
+/* Sidebar */
+.logo{font-family:'JetBrains Mono',monospace;font-size:12px;color:#555;letter-spacing:0.06em;margin-bottom:48px}
+.logo strong{color:#f0f0f0;font-weight:500}
+
+.nav-steps{display:flex;flex-direction:column;gap:4px}
+
+.nav-step{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;cursor:pointer;transition:background 0.15s;text-decoration:none;border:none;background:none;width:100%;text-align:left}
+.nav-step:hover{background:#141414}
+.nav-step.active{background:#181818}
+.nav-step.active .step-label{color:#f0f0f0}
+
+.step-indicator{width:20px;height:20px;border-radius:50%;border:1.5px solid #2a2a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.3s;font-size:10px;color:#444;font-family:'JetBrains Mono',monospace}
+.nav-step.active .step-indicator{border-color:#f0f0f0;color:#f0f0f0}
+.nav-step.done .step-indicator{border-color:#444;background:#1e1e1e;color:#888}
+
+.step-label{font-size:13px;color:#555;transition:color 0.2s}
+.step-sub{font-size:11px;color:#333;margin-top:1px}
+.nav-step.active .step-sub{color:#555}
+
+.sidebar-footer{margin-top:auto;font-size:11px;color:#333;line-height:1.7}
+
+/* Main content */
+.page-header{margin-bottom:48px}
+.page-header h1{font-size:24px;font-weight:500;line-height:1.3;margin-bottom:6px;letter-spacing:-0.01em}
+.page-header p{color:#555;font-size:13px;line-height:1.6}
+
+/* Section */
+.section{display:none}
+.section.active{display:block}
+
+.section-title{font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#444;margin-bottom:32px;padding-bottom:12px;border-bottom:1px solid #1e1e1e}
+
+/* Search box */
+.search-wrap{margin-bottom:36px;background:#151515;border:1px solid #1e1e1e;border-radius:8px;padding:14px 16px;transition:border-color 0.2s}
+.search-wrap:focus-within{border-color:#333}
+.search-top{display:flex;align-items:center;gap:10px}
+.search-icon{color:#444;font-size:15px;flex-shrink:0}
+.search-wrap input{flex:1;background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:14px;color:#f0f0f0;min-width:0}
+.search-wrap input::placeholder{color:#333}
+.search-badge{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#555;background:#1e1e1e;border-radius:4px;padding:3px 7px;white-space:nowrap}
+
+.dropdown-list{display:none;margin-top:8px;border-top:1px solid #1e1e1e;padding-top:8px}
+.dropdown-list.open{display:block}
+.dropdown-item{padding:8px 4px;cursor:pointer;border-radius:4px;transition:background 0.1s;display:flex;align-items:center;gap:10px}
+.dropdown-item:hover{background:#1e1e1e}
+.dropdown-item-icon{font-size:13px;color:#444;flex-shrink:0}
+.dropdown-item-name{font-size:13px;color:#d0d0d0}
+.dropdown-item-addr{font-size:11px;color:#444;margin-top:1px}
+
+.autofill-bar{display:none;margin-bottom:28px;padding:10px 14px;background:#151515;border:1px solid #1e1e1e;border-radius:6px;font-size:12px;color:#555;align-items:center;gap:8px}
+.autofill-bar.show{display:flex}
+.autofill-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;flex-shrink:0}
+
+/* Form grid */
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 24px;margin-bottom:24px}
+.field-grid.single{grid-template-columns:1fr}
+@media(max-width:500px){.field-grid{grid-template-columns:1fr}}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+
+.field label{font-size:11px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:#444}
+
+.field input,.field textarea,.field select{
+  background:#151515;
+  border:1px solid #1e1e1e;
+  border-radius:6px;
+  padding:10px 12px;
+  color:#f0f0f0;
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  font-weight:300;
+  outline:none;
+  transition:border-color 0.2s,background 0.2s;
+  -webkit-appearance:none;
+  width:100%
+}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#333;background:#1a1a1a}
+.field input.autofilled{border-color:#1e3a2a;background:#0f1f17;color:#86efac}
+.field input::placeholder,.field textarea::placeholder{color:#2a2a2a}
+.field textarea{resize:vertical;min-height:80px;line-height:1.6}
+.field select option{background:#151515;color:#f0f0f0}
+
+/* Upload */
+.upload-box{background:#151515;border:1px dashed #1e1e1e;border-radius:6px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
+.upload-box:hover{border-color:#333;background:#1a1a1a}
+.upload-box input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-box-label{font-size:12px;color:#444}
+.upload-box-label strong{color:#666;font-weight:500}
+.upload-box-label.active{color:#666}
+
+/* Plans */
+.plans{display:flex;flex-direction:column;gap:0;border:1px solid #1e1e1e;border-radius:8px;overflow:hidden;margin-bottom:24px}
+.plan{display:flex;align-items:center;gap:14px;padding:16px 18px;cursor:pointer;border-bottom:1px solid #1e1e1e;transition:background 0.15s;position:relative}
+.plan:last-child{border-bottom:none}
+.plan:hover{background:#151515}
+.plan input{display:none}
+.plan-radio{width:16px;height:16px;border-radius:50%;border:1.5px solid #2a2a2a;flex-shrink:0;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.plan-radio::after{content:'';width:7px;height:7px;border-radius:50%;background:#f0f0f0;opacity:0;transition:opacity 0.2s}
+.plan input:checked ~ .plan-radio{border-color:#f0f0f0}
+.plan input:checked ~ .plan-radio::after{opacity:1}
+.plan-info{flex:1}
+.plan-name{font-size:13px;color:#d0d0d0;margin-bottom:2px}
+.plan-desc{font-size:11px;color:#444}
+.plan input:checked ~ .plan-radio ~ .plan-info .plan-name{color:#f0f0f0}
+
+/* Divider */
+.divider{height:1px;background:#1a1a1a;margin:32px 0}
+
+/* Buttons */
+.btn-row{display:flex;align-items:center;gap:16px;margin-top:40px;padding-top:32px;border-top:1px solid #1a1a1a}
+.btn-primary{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:#111;background:#f0f0f0;border:none;padding:11px 22px;border-radius:6px;cursor:pointer;transition:opacity 0.2s;letter-spacing:0.01em}
+.btn-primary:hover{opacity:0.88}
+.btn-ghost{font-family:'Inter',sans-serif;font-size:13px;color:#444;background:none;border:none;cursor:pointer;padding:0;transition:color 0.2s;letter-spacing:0.01em}
+.btn-ghost:hover{color:#888}
+
+/* Success */
+.success{display:none;padding:20px 0}
+.success.show{display:block}
+.success-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:#4ade80;letter-spacing:0.06em;margin-bottom:20px}
+.success h2{font-size:22px;font-weight:400;margin-bottom:10px;letter-spacing:-0.01em}
+.success p{font-size:13px;color:#555;line-height:1.8}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">agency/<strong>os</strong></div>
+
+    <nav class="nav-steps">
+      <button class="nav-step active" id="nav1" onclick="go(1)">
+        <div class="step-indicator" id="si1">1</div>
+        <div>
+          <div class="step-label">Attività</div>
+          <div class="step-sub">Info base + Google Maps</div>
+        </div>
+      </button>
+      <button class="nav-step" id="nav2" onclick="go(2)">
+        <div class="step-indicator" id="si2">2</div>
+        <div>
+          <div class="step-label">Contenuti</div>
+          <div class="step-sub">Servizi, stile, file</div>
+        </div>
+      </button>
+      <button class="nav-step" id="nav3" onclick="go(3)">
+        <div class="step-indicator" id="si3">3</div>
+        <div>
+          <div class="step-label">Piano</div>
+          <div class="step-sub">Abbonamento e consegna</div>
+        </div>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      Sito pronto in<br><strong style="color:#666">24–48 ore</strong>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <div class="page-header">
+      <h1>Brief del sito</h1>
+      <p>Compila in 3 minuti. Costruiamo il tuo sito su misura.</p>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="success" id="success">
+      <div class="success-tag">✓ inviato</div>
+      <h2>Grazie.</h2>
+      <p>Abbiamo ricevuto il tuo brief.<br>Ti contatteremo entro 24 ore con una preview del sito.</p>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="section active" id="s1">
+      <div class="section-title">01 — Informazioni attività</div>
+
+      <!-- Google Places -->
+      <div class="search-wrap">
+        <div class="search-top">
+          <span class="search-icon">⌕</span>
+          <input type="text" id="places-input" placeholder="Cerca la tua attività su Google Maps..." autocomplete="off">
+          <span class="search-badge">Auto-fill</span>
+        </div>
+        <div class="dropdown-list" id="places-list"></div>
+      </div>
+
+      <div class="autofill-bar" id="autofill-bar">
+        <div class="autofill-dot"></div>
+        <span id="autofill-msg">Dati importati da Google Maps</span>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label>Nome attività</label>
+          <input type="text" id="nome_attivita" placeholder="Ristorante Da Luigi">
+        </div>
+        <div class="field">
+          <label>Titolare</label>
+          <input type="text" id="nome_titolare" placeholder="Luigi Rossi">
+        </div>
+        <div class="field">
+          <label>Telefono</label>
+          <input type="tel" id="telefono" placeholder="+39 080 ...">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="email" placeholder="info@...">
+        </div>
+        <div class="field">
+          <label>Città</label>
+          <input type="text" id="citta" placeholder="Bari">
+        </div>
+        <div class="field">
+          <label>Settore</label>
+          <select id="settore">
+            <option value="">Seleziona...</option>
+            <option>Ristorante / Bar</option>
+            <option>Hotel / B&B</option>
+            <option>Studio professionale</option>
+            <option>Negozio / Retail</option>
+            <option>Palestra / Benessere</option>
+            <option>Artigianato</option>
+            <option>Servizi</option>
+            <option>Altro</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Sito attuale (facoltativo)</label>
+          <input type="url" id="sito_attuale" placeholder="https://...">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="go(2)">Continua →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="section" id="s2">
+      <div class="section-title">02 — Contenuti e stile</div>
+
+      <div class="field-grid single">
+        <div class="field">
+          <label>Descrivi la tua attività</label>
+          <textarea id="descrizione" placeholder="Cosa fai, da quanto tempo, cosa ti distingue dai concorrenti..."></textarea>
+        </div>
+        <div class="field">
+          <label>Servizi o prodotti principali</label>
+          <textarea id="servizi" placeholder="Elenca i tuoi servizi principali..."></textarea>
+        </div>
+        <div class="field">
+          <label>Colori del brand</label>
+          <input type="text" id="colori" placeholder="es. blu navy e oro, toni caldi e naturali...">
+        </div>
+        <div class="field">
+          <label>Cosa non deve mancare nel sito</label>
+          <textarea id="must_have" placeholder="es. pulsante WhatsApp, modulo prenotazione, galleria foto..." style="min-height:64px"></textarea>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label>Logo</label>
+          <div class="upload-box" id="logo-wrap">
+            <input type="file" accept="image/*" onchange="handleFile('logo',this)">
+            <div class="upload-box-label" id="logo-lbl">Carica logo —<br><strong>PNG, SVG, JPG</strong></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Foto attività</label>
+          <div class="upload-box">
+            <input type="file" accept="image/*" multiple onchange="handleFile('foto',this)">
+            <div class="upload-box-label" id="foto-lbl">Carica foto —<br><strong>più file supportati</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-grid single" style="margin-top:20px">
+        <div class="field">
+          <label>Note aggiuntive</label>
+          <textarea id="note" placeholder="Qualsiasi altra cosa vuoi dirci..." style="min-height:64px"></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="go(3)">Continua →</button>
+        <button class="btn-ghost" onclick="go(1)">← Indietro</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="section" id="s3">
+      <div class="section-title">03 — Piano e consegna</div>
+
+      <div class="plans">
+        <label class="plan">
+          <input type="radio" name="piano" value="Base" checked>
+          <div class="plan-radio"></div>
+          <div class="plan-info">
+            <div class="plan-name">Piano Base</div>
+            <div class="plan-desc">Sito professionale + hosting incluso</div>
+          </div>
+        </label>
+        <label class="plan">
+          <input type="radio" name="piano" value="Gestione">
+          <div class="plan-radio"></div>
+          <div class="plan-info">
+            <div class="plan-name">Piano Gestione</div>
+            <div class="plan-desc">Sito + hosting + modifiche mensili</div>
+          </div>
+        </label>
+        <label class="plan">
+          <input type="radio" name="piano" value="Completo">
+          <div class="plan-radio"></div>
+          <div class="plan-info">
+            <div class="plan-name">Piano Completo</div>
+            <div class="plan-desc">Dominio + hosting + gestione illimitata</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label>Dominio preferito</label>
+          <input type="text" id="dominio" placeholder="es. mioristorante.it">
+        </div>
+        <div class="field">
+          <label>Data consegna preferita</label>
+          <input type="date" id="data_consegna">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="submitForm()">Invia brief ✓</button>
+        <button class="btn-ghost" onclick="go(2)">← Indietro</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const PLACES=[
+  {name:"Ristorante Da Luigi",address:"Via Roma 12, Bari",phone:"+39 080 521 3344",category:"Ristorante / Bar",city:"Bari",website:""},
+  {name:"Hotel Mediterraneo",address:"Lungomare 44, Bari",phone:"+39 080 572 1100",category:"Hotel / B&B",city:"Bari",website:""},
+  {name:"Studio Legale Rossi",address:"Corso Cavour 8, Bari",phone:"+39 080 521 8800",category:"Studio professionale",city:"Bari",website:""},
+  {name:"Pizzeria Bella Napoli",address:"Via Sparano 55, Bari",phone:"+39 080 523 4411",category:"Ristorante / Bar",city:"Bari",website:""},
+];
+let _r=[];
+
+document.getElementById('places-input').addEventListener('input',function(){
+  const q=this.value.trim().toLowerCase();
+  const list=document.getElementById('places-list');
+  if(q.length<2){list.classList.remove('open');return;}
+  _r=PLACES.filter(p=>p.name.toLowerCase().includes(q)||p.city.toLowerCase().includes(q));
+  if(!_r.length){list.classList.remove('open');return;}
+  list.innerHTML=_r.map((p,i)=>`<div class="dropdown-item" onclick="pick(${i})"><span class="dropdown-item-icon">📍</span><div><div class="dropdown-item-name">${p.name}</div><div class="dropdown-item-addr">${p.address}</div></div></div>`).join('');
+  list.classList.add('open');
+});
+
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('places-list').classList.remove('open');});
+
+function pick(i){
+  const p=_r[i];
+  document.getElementById('places-list').classList.remove('open');
+  document.getElementById('places-input').value='';
+  const map={nome_attivita:p.name,telefono:p.phone,citta:p.city,sito_attuale:p.website};
+  const filled=[];
+  Object.entries(map).forEach(([id,val])=>{if(!val)return;const el=document.getElementById(id);if(el){el.value=val;el.classList.add('autofilled');filled.push(el.previousElementSibling?.textContent||id);}});
+  const sel=document.getElementById('settore');
+  for(let o of sel.options){if(o.value===p.category){sel.value=p.category;break;}}
+  document.getElementById('autofill-msg').textContent=`Importato: ${p.name} — ${filled.length} campi compilati`;
+  document.getElementById('autofill-bar').classList.add('show');
+}
+
+function go(n){
+  for(let i=1;i<=3;i++){
+    document.getElementById('s'+i).classList.remove('active');
+    const nav=document.getElementById('nav'+i);
+    const si=document.getElementById('si'+i);
+    nav.classList.remove('active','done');
+    if(i<n){nav.classList.add('done');si.textContent='✓';}
+    else if(i===n){nav.classList.add('active');si.textContent=i;}
+    else{nav.classList.remove('done');si.textContent=i;}
+  }
+  document.getElementById('s'+n).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function handleFile(type,input){
+  const el=document.getElementById(type+'-lbl');
+  const n=input.files.length;
+  el.innerHTML=n===1?`<strong>${input.files[0].name}</strong>`:`<strong>${n} file selezionati</strong>`;
+  el.classList.add('active');
+}
+
+function submitForm(){
+  const data={
+    nome_attivita:document.getElementById('nome_attivita').value,
+    nome_titolare:document.getElementById('nome_titolare').value,
+    telefono:document.getElementById('telefono').value,
+    email:document.getElementById('email').value,
+    citta:document.getElementById('citta').value,
+    settore:document.getElementById('settore').value,
+    sito_attuale:document.getElementById('sito_attuale').value,
+    descrizione:document.getElementById('descrizione').value,
+    servizi:document.getElementById('servizi').value,
+    colori:document.getElementById('colori').value,
+    must_have:document.getElementById('must_have').value,
+    note:document.getElementById('note').value,
+    piano:document.querySelector('input[name="piano"]:checked')?.value,
+    dominio:document.getElementById('dominio').value,
+    data_consegna:document.getElementById('data_consegna').value,
+  };
+  fetch('https://valezz.app.n8n.cloud/webhook/brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(err=>console.error(err))
+  console.log(data);
+  for(let i=1;i<=3;i++)document.getElementById('s'+i).classList.remove('active');
+  document.getElementById('success').classList.add('show');
+  document.querySelectorAll('.nav-step').forEach(s=>{s.classList.remove('active');s.classList.add('done');});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
